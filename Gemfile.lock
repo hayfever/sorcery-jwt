@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sorcery-jwt (0.1.1)
+    sorcery-jwt (0.1.2)
       jwt (~> 1.0)
       sorcery (~> 0.12.0)
 
