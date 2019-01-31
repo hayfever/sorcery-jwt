@@ -11,10 +11,13 @@ module Sorcery
             attr_accessor :jwt_secret
             # Type of the algorithm used to encode JWTs. Corresponds to the options available in jwt/ruby-jwt.
             attr_accessor :jwt_algorithm
+            # How long the session should be valid for in seconds. Will be set as the exp claim in the token.
+            attr_accessor :session_expiry
           end
 
           base.sorcery_config.instance_eval do
             @defaults[:@jwt_algorithm] = "HS256"
+            @defaults[:@session_expiry] = Time.now.to_i + (3600 * 24 * 14)
 
             reset!
           end
@@ -27,7 +30,8 @@ module Sorcery
 
         module ClassMethods
           def issue_token(payload)
-            JWT.encode(payload, @sorcery_config.jwt_secret, @sorcery_config.jwt_algorithm)
+            exp_payload = payload.merge(exp: @sorcery_config.session_expiry)
+            JWT.encode(exp_payload, @sorcery_config.jwt_secret, @sorcery_config.jwt_algorithm)
           end
 
           def decode_token(token)

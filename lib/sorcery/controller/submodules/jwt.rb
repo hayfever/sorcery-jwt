@@ -16,7 +16,7 @@ module Sorcery
             @current_user = user_class.find_by(user)
             auto_login(@current_user) if @current_user
             @current_user
-          rescue JWT::DecodeError
+          rescue JWT::DecodeError, JWT::ExpiredSignature
             @current_user = false
           end
 
@@ -32,6 +32,7 @@ module Sorcery
 
           def token
             return nil unless authorization_header
+
             authorization_header.split(" ").last
           end
 
