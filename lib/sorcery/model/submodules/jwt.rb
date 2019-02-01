@@ -40,6 +40,8 @@ module Sorcery
 
           def token_valid?(token)
             decode_token(token).present?
+          rescue JWT::DecodeError, JWT::ExpiredSignature
+            false
           end
 
           protected
