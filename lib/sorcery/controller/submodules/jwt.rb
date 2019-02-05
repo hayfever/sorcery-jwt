@@ -11,7 +11,7 @@ module Sorcery
           protected
 
           def login_from_jwt
-            user = decoded_token.first
+            user = decoded_token.first.slice("id", "email")
 
             @current_user = user_class.find_by(user)
             auto_login(@current_user) if @current_user
