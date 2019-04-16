@@ -26,7 +26,7 @@ First, include the `:jwt` submodule in your list of configured Sorcery submodule
 Rails.application.config.sorcery.submodules = [:jwt, ...]
 ```
 
-Next, in the Sorcery `user_config`, set the secret and algorithm that will be used to sign your tokens:
+Next, in the Sorcery `user_config`, set the secret and algorithm that will be used to sign your tokens. You can also set length of time in seconds that the token will be valid for. Note that this is configured separately from the `:session_timeout` submodule.
 
 ```
 Rails.application.config.sorcery.configure do |config|
@@ -35,6 +35,7 @@ Rails.application.config.sorcery.configure do |config|
     # ...
     user.jwt_secret = Rails.application.secrets.secret_key_base
     user.jwt_algorithm = "HS256" # HS256 is used by default.
+    user.session_expiry = 60 * 60 * 24 * 7 * 2 # 2 weeks is used by default.
   end
 end
 ```

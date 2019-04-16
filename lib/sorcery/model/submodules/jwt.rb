@@ -17,7 +17,7 @@ module Sorcery
 
           base.sorcery_config.instance_eval do
             @defaults[:@jwt_algorithm] = "HS256"
-            @defaults[:@session_expiry] = Time.now.to_i + (3600 * 24 * 14)
+            @defaults[:@session_expiry] = 60 * 60 * 24 * 7 * 2 # 2 weeks
 
             reset!
           end
@@ -30,7 +30,7 @@ module Sorcery
 
         module ClassMethods
           def issue_token(payload)
-            exp_payload = payload.merge(exp: @sorcery_config.session_expiry)
+            exp_payload = payload.merge(exp: Time.now.to_i + @sorcery_config.session_expiry)
             JWT.encode(exp_payload, @sorcery_config.jwt_secret, @sorcery_config.jwt_algorithm)
           end
 
