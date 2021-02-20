@@ -7,6 +7,8 @@ module Sorcery
       module Jwt
         def self.included(base)
           base.sorcery_config.class_eval do
+             # Header used to access JWTs. Default is Authorization
+            attr_accessor :jwt_header
             # Secret used to encode JWTs. Should correspond to the type needed by the algorithm used.
             attr_accessor :jwt_secret
             # Type of the algorithm used to encode JWTs. Corresponds to the options available in jwt/ruby-jwt.
@@ -16,6 +18,7 @@ module Sorcery
           end
 
           base.sorcery_config.instance_eval do
+            @defaults[:@jwt_header] = "Authorization"
             @defaults[:@jwt_algorithm] = "HS256"
             @defaults[:@session_expiry] = 60 * 60 * 24 * 7 * 2 # 2 weeks
 
