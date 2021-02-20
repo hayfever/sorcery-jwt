@@ -3,6 +3,17 @@ module Sorcery
     module Submodules
       module Jwt
         def self.included(base)
+          base.sorcery_config.class_eval do
+             # Header used to access JWTs. Default is Authorization
+            attr_accessor :jwt_header
+          end
+          
+          base.sorcery_config.instance_eval do
+            @defaults[:@jwt_header] = "Authorization"
+            
+            reset!
+          end
+          
           base.send(:include, InstanceMethods)
           Config.login_sources << :login_from_jwt
         end
