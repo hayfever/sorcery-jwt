@@ -37,7 +37,7 @@ module Sorcery
           end
 
           def authorization_header
-            @authorization_header ||= request.headers["Authorization"]
+            @authorization_header ||= request.headers[@sorcery_config.jwt_header]
           end
 
           def decoded_token
