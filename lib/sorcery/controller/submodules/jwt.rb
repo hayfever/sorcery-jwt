@@ -31,13 +31,13 @@ module Sorcery
           private
 
           def token
-            return nil unless authorization_header
+            return nil unless token_header
 
-            authorization_header.split(" ").last
+            token_header.split(" ").last
           end
 
-          def authorization_header
-            @authorization_header ||= request.headers["Authorization"]
+          def token_header
+            @token_header ||= request.headers[user_class.token_header]
           end
 
           def decoded_token
