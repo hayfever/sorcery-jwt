@@ -25,7 +25,7 @@ module Sorcery
             reset!
           end
 
-          base.sorcery_config.after_config << :validate_secret_defined
+          base.sorcery_config.after_config << :validate_token_header_defined
           base.sorcery_config.after_config << :validate_secret_defined
 
           base.extend(ClassMethods)
