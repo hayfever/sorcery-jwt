@@ -3,17 +3,6 @@ module Sorcery
     module Submodules
       module Jwt
         def self.included(base)
-          base.sorcery_config.class_eval do
-             # Header used to access JWTs. Default is Authorization
-            attr_accessor :jwt_header
-          end
-          
-          base.sorcery_config.instance_eval do
-            @defaults[:@jwt_header] = "Authorization"
-            
-            reset!
-          end
-          
           base.send(:include, InstanceMethods)
           Config.login_sources << :login_from_jwt
         end
@@ -42,13 +31,13 @@ module Sorcery
           private
 
           def token
-            return nil unless authorization_header
+            return nil unless token_header
 
-            authorization_header.split(" ").last
+            token_header.split(" ").last
           end
 
-          def authorization_header
-            @authorization_header ||= request.headers[@sorcery_config.jwt_header]
+          def token_header
+            @token_header ||= request.headers[user_class.token_header]
           end
 
           def decoded_token

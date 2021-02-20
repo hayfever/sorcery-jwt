@@ -7,6 +7,8 @@ module Sorcery
       module Jwt
         def self.included(base)
           base.sorcery_config.class_eval do
+            # Header used to access JWTs. Default is Authorization
+            attr_accessor :jwt_header
             # Secret used to encode JWTs. Should correspond to the type needed by the algorithm used.
             attr_accessor :jwt_secret
             # Type of the algorithm used to encode JWTs. Corresponds to the options available in jwt/ruby-jwt.
@@ -16,6 +18,7 @@ module Sorcery
           end
 
           base.sorcery_config.instance_eval do
+            @defaults[:@jwt_header] = "Authorization"
             @defaults[:@jwt_algorithm] = "HS256"
             @defaults[:@session_expiry] = 60 * 60 * 24 * 7 * 2 # 2 weeks
 
@@ -23,12 +26,17 @@ module Sorcery
           end
 
           base.sorcery_config.after_config << :validate_secret_defined
+          base.sorcery_config.after_config << :validate_secret_defined
 
           base.extend(ClassMethods)
           base.send(:include, InstanceMethods)
         end
 
         module ClassMethods
+          def token_header
+            @sorcery_config.jwt_header
+          end
+
           def issue_token(payload)
             exp_payload = payload.merge(exp: Time.now.to_i + @sorcery_config.session_expiry)
             JWT.encode(exp_payload, @sorcery_config.jwt_secret, @sorcery_config.jwt_algorithm)
@@ -45,6 +53,11 @@ module Sorcery
           end
 
           protected
+
+          def validate_token_header_defined
+            message = "A header must be configured when using the Sorcery::Jwt extension."
+            raise ArgumentError, message if @sorcery_config.jwt_header.nil?
+          end
 
           def validate_secret_defined
             message = "A secret must be configured when using the Sorcery::Jwt extension."
