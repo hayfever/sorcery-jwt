@@ -2,6 +2,8 @@
 
 Jwt extension for the Sorcery authentication library
 
+# NOTE: Sorcery v1 is being developed and JWT is being implemented as a core plugin. See https://github.com/Sorcery/sorcery-rework/issues/9 for more.
+
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -42,7 +44,7 @@ end
 
 Available algorithms are listed at https://github.com/jwt/ruby-jwt.
 
-You're now ready to start using the library. By including the submodule, each request will check for an authorization header with a JWT as the value. If the JWT is valid, it will set the `current_user` in the controller to the matching user. It is up to you to handle what happens when a token is invalid or JWTs need to be revoked. Some ideas here: http://waiting-for-dev.github.io/blog/2017/01/24/jwt_revocation_strategies/.
+You're now ready to start using the library. By including the submodule, each request will check for an authorization header with a JWT as the value. If the JWT is valid, it will set the `current_user` in the controller to the matching user. It is up to you to handle what happens when a token is invalid or JWTs need to be revoked. Some ideas here: http://waiting-for-dev.github.io/blog/2017/01/24/jwt_revocation_strategies.
 
 To login a user and issue a token, use the `login_and_issue_token` method from a controller. This method takes the same `email` and `password` arguments that the Sorcery `authenticate` method does.
 
