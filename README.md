@@ -1,82 +1,132 @@
 # Sorcery::Jwt
 
-Jwt extension for the Sorcery authentication library
+[![CI](https://github.com/hayfever/sorcery-jwt/actions/workflows/ci.yml/badge.svg)](https://github.com/hayfever/sorcery-jwt/actions)
+[![Gem Version](https://badge.fury.io/rb/sorcery-jwt.svg)](https://rubygems.org/gems/sorcery-jwt)
 
-# NOTE: Sorcery v1 is being developed and JWT is being implemented as a core plugin. See https://github.com/Sorcery/sorcery-rework/issues/9 for more.
+Jwt extension for the [Sorcery](https://github.com/Sorcery/sorcery) authentication
+library, for API-only Rails apps.
+
+> **NOTE:** Sorcery v1 is being developed and JWT is planned as a core plugin.
+> See https://github.com/Sorcery/sorcery-rework/issues/9. This gem targets the
+> current (0.16–0.18) sorcery line.
 
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'sorcery-jwt'
+gem "sorcery-jwt"
 ```
 
 And then execute:
 
     $ bundle
 
-Or install it yourself as:
-
-    $ gem install sorcery-jwt
-
 ## Usage
 
 First, include the `:jwt` submodule in your list of configured Sorcery submodules:
 
-```
+```ruby
 Rails.application.config.sorcery.submodules = [:jwt, ...]
 ```
 
-Next, in the Sorcery `user_config`, set the secret and algorithm that will be used to sign your tokens. You can also set length of time in seconds that the token will be valid for. Note that this is configured separately from the `:session_timeout` submodule.
+Next, in the Sorcery `user_config`, set the secret and algorithm used to sign
+tokens, the token lifetime in seconds, and (optionally) clock-skew tolerance:
 
-```
+```ruby
 Rails.application.config.sorcery.configure do |config|
   # ...
   config.user_config do |user|
-    # ...
-    user.jwt_secret = Rails.application.secrets.secret_key_base
-    user.jwt_algorithm = "HS256" # HS256 is used by default.
-    user.session_expiry = 60 * 60 * 24 * 7 * 2 # 2 weeks is used by default.
+    user.jwt_secret     = Rails.application.secrets.secret_key_base
+    user.jwt_algorithm  = "HS256"                  # default; see jwt/ruby-jwt for options
+    user.session_expiry = 60 * 60 * 24 * 7 * 2      # default: 2 weeks (seconds)
+    user.exp_leeway     = 30                        # optional; default nil = no leeway
   end
 end
 ```
 
-Available algorithms are listed at https://github.com/jwt/ruby-jwt.
+With the submodule included, each request checks the `Authorization` header
+for a bearer JWT. If the token is validly signed, unexpired, and its claims
+match a user, `current_user` is set. Handling invalid tokens (401s, etc.) is
+up to your application.
 
-You're now ready to start using the library. By including the submodule, each request will check for an authorization header with a JWT as the value. If the JWT is valid, it will set the `current_user` in the controller to the matching user. It is up to you to handle what happens when a token is invalid or JWTs need to be revoked. Some ideas here: http://waiting-for-dev.github.io/blog/2017/01/24/jwt_revocation_strategies.
+To log a user in and issue a token:
 
-To login a user and issue a token, use the `login_and_issue_token` method from a controller. This method takes the same `email` and `password` arguments that the Sorcery `authenticate` method does.
+```ruby
+class SessionsController < ApplicationController
+  def create
+    token = login_and_issue_token(params[:email], params[:password])
 
-Example:
-
-```
-def login
-  token = login_and_issue_token(params[:email], params[:password])
-
-  render json: {
-    user: serialize(current_user),
-    token: token
-  }
+    if token
+      render json: { token: token }, status: :created
+    else
+      render json: { error: "invalid credentials" }, status: :unauthorized
+    end
+  end
 end
 ```
 
-By using `login_and_issue_token` with valid credentials, you're also setting `current_user` in your controller.
+### Claim contract
 
-## Development
+Tokens issued by `login_and_issue_token` carry the user's `id` and `email`,
+plus the standard `exp` and `iat` claims. Authentication via
+`login_from_jwt` requires **all** of the following, evaluated in one place:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+1. a valid signature under the configured secret and algorithm
+2. an unexpired `exp` (within `exp_leeway`, if configured)
+3. `id` and `email` claims are present
+4. the claims match an existing user
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+A validly-signed token that fails any check authenticates nobody — notably,
+a token missing its identity claims can never fall through to an unfiltered
+lookup.
+
+### Token issuance API
+
+You can also issue tokens directly from the user model:
+
+```ruby
+User.issue_token(id: user.id, email: user.email)  # => signed JWT string
+User.decode_token(token)                           # => [payload, header]; raises JWT::DecodeError
+User.token_valid?(token)                           # => boolean; never raises
+```
+
+## Security notes
+
+- **No revocation is built in.** Tokens are valid until `exp`. If you need
+  logout, invalidation on password change, or single-session enforcement, see
+  [JWT revocation strategies](https://waiting-for-dev.github.io/blog/2017/01/24/jwt_revocation_strategies/)
+  — any denylist/token-version approach can be layered on top by your app.
+- The algorithm is pinned on decode: `alg: none` and key-confusion attacks
+  are rejected.
+- The signing secret should be at least as strong as `secret_key_base`
+  rotated from your credentials store.
+
+## Upgrading from 0.1.x
+
+No API changes: `issue_token`, `decode_token`, `token_valid?`,
+`login_and_issue_token`, and the `login_from_jwt` login source all behave as
+before, and **tokens issued by 0.1.x remain valid** — no forced re-login.
+Behavior fixes in the 0.2+ line:
+
+- tokens with no `id`/`email` claims are rejected (previously authenticated
+  the first user in the table)
+- the `email` claim must match the looked-up user
+- failed JWT login sets `current_user` to `nil` (sorcery convention)
+- the model submodule actually registers on modern Rubies (see
+  [CHANGELOG](CHANGELOG.md) — before 0.2, sorcery's `rescue NameError`
+  could silently skip it, leaving `issue_token` undefined at runtime)
+
+## Compatibility
+
+Tested matrix (CI): Ruby 3.2 / 3.3 / 3.4 × sorcery 0.16.5 / 0.17 / 0.18.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/hayfever/sorcery-jwt. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome at
+https://github.com/hayfever/sorcery-jwt.
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Sorcery::Jwt project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/hayfever/sorcery-jwt/blob/master/CODE_OF_CONDUCT.md).
+The gem is available as open source under the terms of the
+[MIT License](LICENSE.txt).

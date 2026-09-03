@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.0 (2026-09-03)
+
+First stable release. The public API is identical to 0.1.x — tokens issued
+by earlier versions remain valid; no forced re-login.
+
+### Added
+
+- `exp_leeway` config: optional clock-skew tolerance (seconds) applied when
+  verifying `exp`. Default nil (previous behavior).
+- `iat` claim on issued tokens.
+- Integration spec exercising the real sorcery include path
+  (`authenticates_with_sorcery!`) — the path where failures were previously
+  swallowed silently by sorcery's `rescue NameError`.
+- Yard documentation for the public API; README rewritten (claim contract,
+  security notes, upgrade guide, tested matrix).
+
 ## 0.2.1 (2026-09-03)
 
 ### Changed

@@ -65,8 +65,12 @@ RSpec.describe Sorcery::Jwt do
   let(:plain_controller) { JwtTestController.new({}) }
 
   before do
-    JwtTestUser.sorcery_config.jwt_secret = "s3cr3t"
-    JwtTestUser.sorcery_config.session_expiry = 3600
+    JwtTestUser.sorcery_config.tap do |config|
+      config.jwt_secret = "s3cr3t"
+      config.jwt_algorithm = "HS256"
+      config.session_expiry = 3600
+      config.exp_leeway = nil
+    end
   end
 
   def controller_for(payload)
@@ -101,10 +105,34 @@ RSpec.describe Sorcery::Jwt do
 
       expect(JwtTestUser.decode_token(token).first["id"]).to eq(1)
     end
+
+    it "adds an iat claim and sets exp relative to it" do
+      token = JwtTestUser.issue_token(id: 1, email: "a@b.c")
+      payload = JwtTestUser.decode_token(token).first
+
+      expect(payload["iat"]).to be_within(2).of(Time.now.to_i)
+      expect(payload["exp"] - payload["iat"]).to eq(JwtTestUser.sorcery_config.session_expiry)
+    end
+
+    it "tolerates a slightly expired token within exp_leeway" do
+      JwtTestUser.sorcery_config.session_expiry = -10
+      JwtTestUser.sorcery_config.exp_leeway = 60
+      token = JwtTestUser.issue_token(id: 1, email: "a@b.c")
+
+      expect(JwtTestUser.token_valid?(token)).to be(true)
+    end
+
+    it "rejects an expired token beyond exp_leeway" do
+      JwtTestUser.sorcery_config.session_expiry = -120
+      JwtTestUser.sorcery_config.exp_leeway = 30
+      token = JwtTestUser.issue_token(id: 1, email: "a@b.c")
+
+      expect(JwtTestUser.token_valid?(token)).to be(false)
+    end
   end
 
   describe "config defaults" do
-    it "defaults jwt_algorithm to HS256 and session_expiry to two weeks" do
+    it "defaults jwt_algorithm to HS256, session_expiry to two weeks, and exp_leeway to nil" do
       fresh = Class.new do
         def self.sorcery_config
           @sorcery_config ||= Sorcery::Model::Config.new
@@ -114,6 +142,7 @@ RSpec.describe Sorcery::Jwt do
 
       expect(fresh.sorcery_config.jwt_algorithm).to eq("HS256")
       expect(fresh.sorcery_config.session_expiry).to eq(60 * 60 * 24 * 7 * 2)
+      expect(fresh.sorcery_config.exp_leeway).to be_nil
     end
   end
 
