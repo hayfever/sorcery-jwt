@@ -11,13 +11,14 @@ module Sorcery
           protected
 
           def login_from_jwt
-            user = decoded_token.first.slice("id", "email")
+            claims = decoded_token.first.slice("id", "email")
+            return @current_user = nil if claims.empty?
 
-            @current_user = user_class.find_by(user)
+            @current_user = user_class.find_by(claims)
             auto_login(@current_user) if @current_user
             @current_user
           rescue JWT::DecodeError, JWT::ExpiredSignature
-            @current_user = false
+            @current_user = nil
           end
 
           def login_and_issue_token(*credentials)

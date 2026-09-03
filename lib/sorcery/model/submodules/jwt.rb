@@ -6,7 +6,9 @@ module Sorcery
     module Submodules
       module Jwt
         def self.included(base)
-          base.sorcery_config.class_eval do
+          # Define the jwt accessors on the config instance's singleton class;
+          # Config#class_eval is not a valid Ruby call.
+          base.sorcery_config.singleton_class.class_eval do
             # Secret used to encode JWTs. Should correspond to the type needed by the algorithm used.
             attr_accessor :jwt_secret
             # Type of the algorithm used to encode JWTs. Corresponds to the options available in jwt/ruby-jwt.
@@ -25,7 +27,6 @@ module Sorcery
           base.sorcery_config.after_config << :validate_secret_defined
 
           base.extend(ClassMethods)
-          base.send(:include, InstanceMethods)
         end
 
         module ClassMethods
@@ -39,7 +40,7 @@ module Sorcery
           end
 
           def token_valid?(token)
-            decode_token(token).present?
+            !!decode_token(token)
           rescue JWT::DecodeError, JWT::ExpiredSignature
             false
           end

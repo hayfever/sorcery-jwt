@@ -1,4 +1,15 @@
 require "bundler/setup"
+
+# Minimal Rails stub: sorcery 0.16.5 Model::Config#initialize calls Rails.version unguarded
+module Rails
+  def self.version
+    "7.0.0"
+  end
+end
+
+Dir[File.join(Gem.loaded_specs["sorcery"].full_gem_path, "lib/sorcery/crypto_providers/*.rb")].sort.each { require _1 }
+require "sorcery/model/config"   # PORO harness: sorcery root requires Rails
+require "sorcery/controller/config"
 require "sorcery/jwt"
 
 RSpec.configure do |config|
