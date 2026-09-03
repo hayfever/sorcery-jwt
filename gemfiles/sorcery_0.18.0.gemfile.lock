@@ -1,7 +1,7 @@
 PATH
-  remote: .
+  remote: ..
   specs:
-    sorcery-jwt (0.2.1)
+    sorcery-jwt (0.2.0)
       jwt (>= 1.0, < 3.0)
       sorcery (>= 0.16.5, < 0.19)
 
@@ -204,6 +204,7 @@ PLATFORMS
 DEPENDENCIES
   rake (~> 13.0)
   rspec (~> 3.0)
+  sorcery (= 0.18.0)
   sorcery-jwt!
 
 BUNDLED WITH

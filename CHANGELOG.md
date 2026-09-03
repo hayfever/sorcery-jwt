@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 (2026-09-03)
+
+### Changed
+
+- Supported sorcery range widened to `>= 0.16.5, < 0.19` (0.17 and 0.18
+  verified). Previously pinned `< 0.17`, which blocked installs alongside
+  current sorcery.
+- CI now runs a matrix: Ruby 3.2–3.4 × sorcery 0.16.5 / 0.17 / 0.18.
+
 ## 0.2.0 (2026-09-03)
 
 ### Security
